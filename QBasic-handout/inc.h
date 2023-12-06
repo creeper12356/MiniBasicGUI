@@ -5,5 +5,10 @@
 #include <QMainWindow>
 #include <QDebug>
 #include <QMap>
-
+#include <QProcess>
+#include <QLineEdit>
+#include <QKeyEvent>
+#include <QCoreApplication>
+#include <QMessageBox>
+#include <QTextStream>
 #endif // INC_H
