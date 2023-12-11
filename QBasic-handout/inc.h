@@ -5,6 +5,7 @@
 #include <QMainWindow>
 #include <QDebug>
 #include <QMap>
+#include <QTextBrowser>
 #include <QProcess>
 #include <QLineEdit>
 #include <QKeyEvent>

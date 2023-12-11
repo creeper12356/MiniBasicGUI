@@ -24,6 +24,8 @@ class MainWindow : public QMainWindow
 private:
     QProcess* proc;
     QVector<Code> codes;
+    //用于显示终端输入的文本框
+    QTextBrowser* terminalReflect = nullptr;
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
@@ -32,7 +34,7 @@ private slots:
     //清空所有文本框的内容
     void clearAll();
     //从文件中读取加载代码
-    void loadCode();
+    void loadCodeFromFile();
     //运行代码
     void runCode();
     //显示帮助信息
@@ -49,8 +51,11 @@ private:
     int insertLineNum(int lineNum) const;
 
 private:
+    void setTerminalReflect(QTextBrowser* browser);
     //刷新界面代码显示
     void refreshCodeDisplay();
+    //后端重新加载代码
+    void reload();
 
 private:
     Ui::MainWindow *ui;

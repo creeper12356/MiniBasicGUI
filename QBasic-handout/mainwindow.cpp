@@ -8,7 +8,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     ui->inputLineEdit->hide();
     connect(ui->btnClearCode,&QPushButton::clicked,this,&MainWindow::clearAll);
-    connect(ui->btnLoadCode,&QPushButton::clicked,this,&MainWindow::loadCode);
+    connect(ui->btnLoadCode,&QPushButton::clicked,this,&MainWindow::loadCodeFromFile);
     connect(ui->btnRunCode,&QPushButton::clicked,this,&MainWindow::runCode);
     proc = new QProcess(this);
     proc->setProgram("./MiniBasicCore");
@@ -19,17 +19,16 @@ MainWindow::MainWindow(QWidget *parent)
         QString content = QString::fromUtf8(proc->readAllStandardOutput()).trimmed();
         if(content.endsWith("?")){
             //进程等待输入
-            ui->textBrowser->setReadOnly(false);
             ui->inputLineEdit->setFocus();
             ui->inputLineEdit->show();
         }
-        ui->textBrowser->append(content);
+        if(terminalReflect){
+            terminalReflect->append(content);
+        }
     });
     connect(proc,&QProcess::readyReadStandardError,this,[this](){
         QString rawContent = proc->readAllStandardError();
-        qDebug() << rawContent.toUtf8();
         QStringList contents = rawContent.split("\n",QString::SkipEmptyParts);
-        qDebug() << contents.size();
         for(auto& content:contents){
             QMessageBox::warning(this,"warning",content);
         }
@@ -47,13 +46,14 @@ MainWindow::~MainWindow()
 
 void MainWindow::clearAll()
 {
+    proc->write("load\n\n");
     codes.clear();
     ui->CodeDisplay->clear();
-    ui->textBrowser->clear();
+    ui->ResultDisplay->clear();
     ui->treeDisplay->clear();
 }
 
-void MainWindow::loadCode()
+void MainWindow::loadCodeFromFile()
 {
     QString codeFileName = QFileDialog::getOpenFileName(this,"打开文件",QDir::currentPath());
     if(codeFileName.isEmpty()){
@@ -69,16 +69,20 @@ void MainWindow::loadCode()
         //TODO without lineNum???
         codes.append(Code(ts.readLine()));
     }
+    reload();
     refreshCodeDisplay();
     reader.close();
 }
 
 void MainWindow::runCode()
 {
-    ui->textBrowser->clear();
-    proc->write("load\n");
-    proc->write(ui->CodeDisplay->toPlainText().toUtf8());
-    proc->write("\n\n");
+    if(ui->inputLineEdit->isVisible()){
+        //上一次运行未停止
+        QMessageBox::warning(this,"警告","程序正在运行。");
+        return ;
+    }
+    ui->ResultDisplay->clear();
+    setTerminalReflect(ui->ResultDisplay);
     proc->write("run\n");
 }
 
@@ -104,7 +108,7 @@ void MainWindow::on_cmdLineEdit_editingFinished()
         clearAll();
     }
     else if(cmd == "LOAD"){
-        loadCode();
+        loadCodeFromFile();
     }
     else if(cmd == "HELP"){
         showHelp();
@@ -114,7 +118,6 @@ void MainWindow::on_cmdLineEdit_editingFinished()
     }
     else{
         try{
-            //TODO insert according to lineNum
             Code newCode(cmd);
             int index = findLineNum(newCode.lineNum);
             if(index == -1){
@@ -135,6 +138,7 @@ void MainWindow::on_cmdLineEdit_editingFinished()
                     codes[index] = newCode;
                 }
             }
+            reload();
             refreshCodeDisplay();
         }
         catch(Exception e){
@@ -184,12 +188,31 @@ int MainWindow::insertLineNum(int lineNum) const
     return lh;
 }
 
+void MainWindow::setTerminalReflect(QTextBrowser *browser)
+{
+    terminalReflect = browser;
+}
+
 void MainWindow::refreshCodeDisplay()
 {
     ui->CodeDisplay->clear();
     for(auto& code:codes){
         ui->CodeDisplay->append(code.source);
     }
+}
+
+void MainWindow::reload()
+{
+    proc->write("load\n");
+    for(Code& code: codes){
+        proc->write(code.source.toUtf8() + "\n");
+    }
+    //finish load
+    proc->write("\n");
+
+    ui->treeDisplay->clear();
+    setTerminalReflect(ui->treeDisplay);
+    proc->write("analyze\n");
 }
 
 
@@ -230,9 +253,11 @@ void MainWindow::on_inputLineEdit_editingFinished()
     else{
         //写入进程
         proc->write((input + '\n').toUtf8());
-        ui->textBrowser->append(input);
         ui->inputLineEdit->clear();
         ui->inputLineEdit->hide();
         ui->cmdLineEdit->setFocus();
+        if(terminalReflect){
+            terminalReflect->append(input);
+        }
     }
 }
