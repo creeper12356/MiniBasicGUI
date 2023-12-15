@@ -33,6 +33,7 @@ MainWindow::MainWindow(QWidget *parent)
             QMessageBox::warning(this,"warning",content);
         }
     });
+    terminalReflect = ui->treeDisplay;
     ui->cmdLineEdit->setFocus();
 }
 
@@ -44,9 +45,40 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::loadCode(const QString &code)
+{
+    try{
+        Code newCode(code);
+        int index = findLineNum(newCode.lineNum);
+        if(index == -1){
+            //未找到行号
+            if(!newCode.emptyFlag){
+                //仅在非空行下插入
+                codes.insert(insertLineNum(newCode.lineNum),newCode);
+            }
+        }
+        else{
+            //找到行号
+            if(newCode.emptyFlag){
+                //空行，删除原行
+                codes.removeAt(index);
+            }
+            else{
+                //非空行，覆盖
+                codes[index] = newCode;
+            }
+        }
+        reload();
+
+    }
+    catch(Exception e){
+        QMessageBox::warning(this,"警告","您的代码缺少行号。");
+    }
+}
+
 void MainWindow::clearAll()
 {
-    proc->write("load\n\n");
+    proc->write("clear\n");
     codes.clear();
     ui->CodeDisplay->clear();
     ui->ResultDisplay->clear();
@@ -60,16 +92,14 @@ void MainWindow::loadCodeFromFile()
         qDebug() << "not opening a file.";
         return ;
     }
-    //TODO: read line by line
     QFile reader(codeFileName);
     reader.open(QIODevice::ReadOnly);
     QTextStream ts(&reader);
     codes.clear();
     while(!ts.atEnd()){
-        //TODO without lineNum???
-        codes.append(Code(ts.readLine()));
+        loadCode(ts.readLine());
     }
-    reload();
+    refreshTreeDisplay();
     refreshCodeDisplay();
     reader.close();
 }
@@ -82,7 +112,7 @@ void MainWindow::runCode()
         return ;
     }
     ui->ResultDisplay->clear();
-    setTerminalReflect(ui->ResultDisplay);
+    terminalReflect = ui->ResultDisplay;
     proc->write("run\n");
 }
 
@@ -96,7 +126,6 @@ void MainWindow::showHelp()
 
 void MainWindow::on_cmdLineEdit_editingFinished()
 {
-    //TODO: rename this
     QString cmd = ui->cmdLineEdit->text().trimmed();
     if(cmd == ""){
         return ;
@@ -109,6 +138,7 @@ void MainWindow::on_cmdLineEdit_editingFinished()
     }
     else if(cmd == "LOAD"){
         loadCodeFromFile();
+
     }
     else if(cmd == "HELP"){
         showHelp();
@@ -116,35 +146,16 @@ void MainWindow::on_cmdLineEdit_editingFinished()
     else if(cmd == "QUIT"){
         close();
     }
+    else if(cmd.startsWith("INPUT ")
+            || cmd.startsWith("PRINT ")
+            || cmd.startsWith("LET ")){
+        terminalReflect = ui->ResultDisplay;
+        proc->write(QString("cmd " + cmd + "\n").toUtf8());
+    }
     else{
-        try{
-            Code newCode(cmd);
-            int index = findLineNum(newCode.lineNum);
-            if(index == -1){
-                //未找到行号
-                if(!newCode.emptyFlag){
-                    //仅在非空行下插入
-                    codes.insert(insertLineNum(newCode.lineNum),newCode);
-                }
-            }
-            else{
-                //找到行号
-                if(newCode.emptyFlag){
-                    //空行，删除原行
-                    codes.removeAt(index);
-                }
-                else{
-                    //非空行，覆盖
-                    codes[index] = newCode;
-                }
-            }
-            reload();
-            refreshCodeDisplay();
-        }
-        catch(Exception e){
-            QMessageBox::warning(this,"警告","您的代码缺少行号。");
-            return ;
-        }
+        loadCode(cmd);
+        refreshTreeDisplay();
+        refreshCodeDisplay();
     }
     ui->cmdLineEdit->clear();
 }
@@ -188,17 +199,19 @@ int MainWindow::insertLineNum(int lineNum) const
     return lh;
 }
 
-void MainWindow::setTerminalReflect(QTextBrowser *browser)
-{
-    terminalReflect = browser;
-}
-
 void MainWindow::refreshCodeDisplay()
 {
     ui->CodeDisplay->clear();
     for(auto& code:codes){
         ui->CodeDisplay->append(code.source);
     }
+}
+
+void MainWindow::refreshTreeDisplay()
+{
+    ui->treeDisplay->clear();
+    terminalReflect = ui->treeDisplay;
+    proc->write("analyze\n");
 }
 
 void MainWindow::reload()
@@ -209,10 +222,6 @@ void MainWindow::reload()
     }
     //finish load
     proc->write("\n");
-
-    ui->treeDisplay->clear();
-    setTerminalReflect(ui->treeDisplay);
-    proc->write("analyze\n");
 }
 
 
