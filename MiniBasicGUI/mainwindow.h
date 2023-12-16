@@ -51,7 +51,6 @@ private:
     int insertLineNum(int lineNum) const;
 private:
     QProcess* proc;
-    QFile treeIn;
     QVector<Code> codes;
     //用于显示终端输入的文本框
     QTextBrowser* terminalReflect = nullptr;

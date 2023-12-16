@@ -14,26 +14,33 @@ MainWindow::MainWindow(QWidget *parent)
     proc->setProgram("./MiniBasicCore");
     proc->setArguments(QStringList() << "-s");
     proc->start();
+    proc->waitForStarted(-1);
 
     connect(proc,&QProcess::readyReadStandardOutput,this,[this](){
-        QString content = QString::fromUtf8(proc->readAllStandardOutput()).trimmed();
-        if(content.endsWith("?")){
-            //进程等待输入
-            ui->inputLineEdit->setFocus();
-            ui->inputLineEdit->show();
-        }
-        if(terminalReflect){
-            terminalReflect->append(content);
-        }
+       QByteArray content = proc->readAllStandardOutput();
+       qDebug() << "isResultDisplay: " << (terminalReflect == ui->ResultDisplay);
+       qDebug() << "content : " << content;
+       for(auto ch: content){
+           if(ch == '#' ){
+               //switch terminal output
+               if(terminalReflect == ui->ResultDisplay) terminalReflect = ui->treeDisplay;
+               else terminalReflect = ui->ResultDisplay;
+           }
+           else if(ch == '?'){
+               //wait for integer input
+               terminalReflect->insertPlainText("?");
+               ui->inputLineEdit->setFocus();
+               ui->inputLineEdit->show();
+           }
+           else{
+               terminalReflect->insertPlainText(QString(ch));
+           }
+       }
     });
     connect(proc,&QProcess::readyReadStandardError,this,[this](){
-        QString rawContent = proc->readAllStandardError();
-        QStringList contents = rawContent.split("\n",QString::SkipEmptyParts);
-        for(auto& content:contents){
-            QMessageBox::warning(this,"warning",content);
-        }
+        ui->errorDisplay->insertPlainText(QString::fromUtf8(proc->readAllStandardError()));
     });
-    terminalReflect = ui->treeDisplay;
+    terminalReflect = ui->ResultDisplay;
     ui->cmdLineEdit->setFocus();
 }
 
@@ -112,7 +119,6 @@ void MainWindow::runCode()
         return ;
     }
     ui->ResultDisplay->clear();
-    terminalReflect = ui->ResultDisplay;
     proc->write("run\n");
 }
 
@@ -149,7 +155,6 @@ void MainWindow::on_cmdLineEdit_editingFinished()
     else if(cmd.startsWith("INPUT ")
             || cmd.startsWith("PRINT ")
             || cmd.startsWith("LET ")){
-        terminalReflect = ui->ResultDisplay;
         proc->write(QString("cmd " + cmd + "\n").toUtf8());
     }
     else{
@@ -210,7 +215,6 @@ void MainWindow::refreshCodeDisplay()
 void MainWindow::refreshTreeDisplay()
 {
     ui->treeDisplay->clear();
-    terminalReflect = ui->treeDisplay;
     proc->write("analyze\n");
 }
 
@@ -266,7 +270,7 @@ void MainWindow::on_inputLineEdit_editingFinished()
         ui->inputLineEdit->hide();
         ui->cmdLineEdit->setFocus();
         if(terminalReflect){
-            terminalReflect->append(input);
+            terminalReflect->insertPlainText(input + "\n");
         }
     }
 }

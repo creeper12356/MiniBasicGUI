@@ -12,4 +12,7 @@
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QTextStream>
+#include <QFile>
+#include <QDir>
+#include <QFileSystemWatcher>
 #endif // INC_H
