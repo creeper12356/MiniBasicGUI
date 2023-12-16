@@ -7,41 +7,23 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     ui->inputLineEdit->hide();
+    terminalReflect = ui->ResultDisplay;
+    ui->cmdLineEdit->setFocus();
+
     connect(ui->btnClearCode,&QPushButton::clicked,this,&MainWindow::clearAll);
     connect(ui->btnLoadCode,&QPushButton::clicked,this,&MainWindow::loadCodeFromFile);
-    connect(ui->btnRunCode,&QPushButton::clicked,this,&MainWindow::runCode);
+    connect(ui->btnRunCode,&QPushButton::clicked,this,&MainWindow::runCodes);
+    connect(ui->cmdLineEdit,&TerminalLineEdit::editingFinished,this,&MainWindow::parseCmd);
+    connect(ui->inputLineEdit,&QLineEdit::editingFinished,this,&MainWindow::inputFinished);
+
     proc = new QProcess(this);
     proc->setProgram("./MiniBasicCore");
-    proc->setArguments(QStringList() << "-s");
+    proc->setArguments(QStringList() << "-b");
     proc->start();
     proc->waitForStarted(-1);
 
-    connect(proc,&QProcess::readyReadStandardOutput,this,[this](){
-       QByteArray content = proc->readAllStandardOutput();
-       qDebug() << "isResultDisplay: " << (terminalReflect == ui->ResultDisplay);
-       qDebug() << "content : " << content;
-       for(auto ch: content){
-           if(ch == '#' ){
-               //switch terminal output
-               if(terminalReflect == ui->ResultDisplay) terminalReflect = ui->treeDisplay;
-               else terminalReflect = ui->ResultDisplay;
-           }
-           else if(ch == '?'){
-               //wait for integer input
-               terminalReflect->insertPlainText("?");
-               ui->inputLineEdit->setFocus();
-               ui->inputLineEdit->show();
-           }
-           else{
-               terminalReflect->insertPlainText(QString(ch));
-           }
-       }
-    });
-    connect(proc,&QProcess::readyReadStandardError,this,[this](){
-        ui->errorDisplay->insertPlainText(QString::fromUtf8(proc->readAllStandardError()));
-    });
-    terminalReflect = ui->ResultDisplay;
-    ui->cmdLineEdit->setFocus();
+    connect(proc,&QProcess::readyReadStandardOutput,this,&MainWindow::readStdOut);
+    connect(proc,&QProcess::readyReadStandardError,this,&MainWindow::readStdErr);
 }
 
 MainWindow::~MainWindow()
@@ -76,7 +58,6 @@ void MainWindow::loadCode(const QString &code)
             }
         }
         reload();
-
     }
     catch(Exception e){
         QMessageBox::warning(this,"警告","您的代码缺少行号。");
@@ -106,12 +87,11 @@ void MainWindow::loadCodeFromFile()
     while(!ts.atEnd()){
         loadCode(ts.readLine());
     }
-    refreshTreeDisplay();
     refreshCodeDisplay();
     reader.close();
 }
 
-void MainWindow::runCode()
+void MainWindow::runCodes()
 {
     if(ui->inputLineEdit->isVisible()){
         //上一次运行未停止
@@ -120,6 +100,7 @@ void MainWindow::runCode()
     }
     ui->ResultDisplay->clear();
     proc->write("run\n");
+    ui->treeDisplay->clear();
 }
 
 void MainWindow::showHelp()
@@ -130,21 +111,60 @@ void MainWindow::showHelp()
     helpDialog.exec();
 }
 
-void MainWindow::on_cmdLineEdit_editingFinished()
+void MainWindow::readStdOut()
+{
+    QByteArray content = proc->readAllStandardOutput();
+       qDebug() << "isResultDisplay: " << (terminalReflect == ui->ResultDisplay);
+       qDebug() << "content : " << content;
+       for(auto ch: content){
+           if(ch == '#' ){
+               //switch terminal output
+               if(terminalReflect == ui->ResultDisplay) terminalReflect = ui->treeDisplay;
+               else terminalReflect = ui->ResultDisplay;
+           }
+           else if(ch == '?'){
+               //wait for integer input
+               terminalReflect->insertPlainText("?");
+               ui->inputLineEdit->show();
+               ui->inputLineEdit->setFocus();
+
+               ui->btnClearCode->setEnabled(false);
+               ui->btnLoadCode->setEnabled(false);
+               ui->btnRunCode->setEnabled(false);
+               ui->cmdLineEdit->setReadOnly(true);
+               ui->cmdLineEdit->setEnabled(false);
+           }
+           else if(ch == '$'){
+               //mark run finished
+               ui->treeDisplay->clear();
+               proc->write("analyze\n");
+           }
+           else{
+               terminalReflect->insertPlainText(QString(ch));
+           }
+       }
+}
+
+void MainWindow::readStdErr()
+{
+    ui->errorDisplay->insertPlainText(QString::fromUtf8(proc->readAllStandardError()));
+}
+
+void MainWindow::parseCmd()
 {
     QString cmd = ui->cmdLineEdit->text().trimmed();
     if(cmd == ""){
+        //do not accept empty input
         return ;
     }
     if(cmd == "RUN"){
-        runCode();
+        runCodes();
     }
     else if(cmd == "CLEAR"){
         clearAll();
     }
     else if(cmd == "LOAD"){
         loadCodeFromFile();
-
     }
     else if(cmd == "HELP"){
         showHelp();
@@ -159,7 +179,6 @@ void MainWindow::on_cmdLineEdit_editingFinished()
     }
     else{
         loadCode(cmd);
-        refreshTreeDisplay();
         refreshCodeDisplay();
     }
     ui->cmdLineEdit->clear();
@@ -212,12 +231,6 @@ void MainWindow::refreshCodeDisplay()
     }
 }
 
-void MainWindow::refreshTreeDisplay()
-{
-    ui->treeDisplay->clear();
-    proc->write("analyze\n");
-}
-
 void MainWindow::reload()
 {
     proc->write("load\n");
@@ -254,7 +267,7 @@ Code::Code()
 
 }
 
-void MainWindow::on_inputLineEdit_editingFinished()
+void MainWindow::inputFinished()
 {
     QString input = ui->inputLineEdit->text();
     bool isNum;
@@ -268,7 +281,14 @@ void MainWindow::on_inputLineEdit_editingFinished()
         proc->write((input + '\n').toUtf8());
         ui->inputLineEdit->clear();
         ui->inputLineEdit->hide();
+
+        ui->btnClearCode->setEnabled(true);
+        ui->btnLoadCode->setEnabled(true);
+        ui->btnRunCode->setEnabled(true);
+        ui->cmdLineEdit->setEnabled(true);
+        ui->cmdLineEdit->setReadOnly(false);
         ui->cmdLineEdit->setFocus();
+
         if(terminalReflect){
             terminalReflect->insertPlainText(input + "\n");
         }

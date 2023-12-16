@@ -27,7 +27,6 @@ public:
 
     void loadCode(const QString& code);
     void refreshCodeDisplay();
-    void refreshTreeDisplay();
     //后端重新加载代码
     void reload();
 
@@ -37,18 +36,22 @@ public slots:
     //从文件中读取加载代码
     void loadCodeFromFile();
     //运行代码
-    void runCode();
+    void runCodes();
     //显示帮助信息
     void showHelp();
 
-    void on_cmdLineEdit_editingFinished();
-    void on_inputLineEdit_editingFinished();
+    void readStdOut();
+    void readStdErr();
+
+    void parseCmd();
+    void inputFinished();
 
 private:
     //查找行号lineNum的代码是否存在，若存在返回下标，不存在返回-1
     int findLineNum(int lineNum) const;
     //当lineNum不存在时，返回lineNum行号应插入的下标
     int insertLineNum(int lineNum) const;
+
 private:
     QProcess* proc;
     QVector<Code> codes;
