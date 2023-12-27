@@ -19,6 +19,13 @@
   <property name="windowTitle">
    <string>GuiBasic</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">background-color:rgb(56, 12, 42);
+color:white;
+font:宋体
+
+</string>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <property name="sizePolicy">
     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -43,7 +50,15 @@
           <property name="font">
            <font>
             <pointsize>14</pointsize>
+            <weight>50</weight>
+            <italic>false</italic>
+            <bold>false</bold>
            </font>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">background-color:rgb(23, 4, 17);
+color:rgb(238, 238, 236);
+</string>
           </property>
           <property name="readOnly">
            <bool>true</bool>
@@ -70,6 +85,11 @@ p, li { white-space: pre-wrap; }
         </item>
         <item>
          <widget class="QTextBrowser" name="ResultDisplay">
+          <property name="styleSheet">
+           <string notr="true">background-color:rgb(23, 4, 17);
+color:rgb(238, 238, 236);
+</string>
+          </property>
           <property name="html">
            <string>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
 &lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
@@ -80,7 +100,13 @@ p, li { white-space: pre-wrap; }
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="inputLineEdit"/>
+         <widget class="QLineEdit" name="inputLineEdit">
+          <property name="styleSheet">
+           <string notr="true">background-color:rgb(23, 4, 17);
+color:rgb(116, 255, 244)
+</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </item>
@@ -97,6 +123,11 @@ p, li { white-space: pre-wrap; }
       </item>
       <item>
        <widget class="QTextBrowser" name="treeDisplay">
+        <property name="styleSheet">
+         <string notr="true">background-color:rgb(23, 4, 17);
+color:rgb(238, 238, 236);
+</string>
+        </property>
         <property name="readOnly">
          <bool>true</bool>
         </property>
@@ -122,6 +153,10 @@ p, li { white-space: pre-wrap; }
       </item>
       <item>
        <widget class="QTextBrowser" name="errorDisplay">
+        <property name="styleSheet">
+         <string notr="true">background-color:rgb(23, 4, 17);
+color:red</string>
+        </property>
         <property name="readOnly">
          <bool>true</bool>
         </property>
@@ -186,8 +221,16 @@ p, li { white-space: pre-wrap; }
         </property>
         <property name="font">
          <font>
-          <pointsize>16</pointsize>
+          <family>Monospace</family>
+          <pointsize>20</pointsize>
+          <weight>50</weight>
+          <italic>false</italic>
+          <bold>false</bold>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color:rgb(23, 4, 17);
+color:rgb(252, 233, 79)</string>
         </property>
        </widget>
       </item>

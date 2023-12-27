@@ -18,6 +18,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->inputLineEdit,&QLineEdit::editingFinished,this,&MainWindow::inputFinished);
 
     proc = new QProcess(this);
+    if(!QFile::exists("./MiniBasicCore")){
+        QString errorInfo = "找不到文件" + QDir::current().absolutePath() + "/MiniBasicCore";
+        QMessageBox::critical(this,"错误",errorInfo);
+        exit(-1);
+    }
     proc->setProgram("./MiniBasicCore");
     proc->setArguments(QStringList() << "-b");
     proc->start();
@@ -78,6 +83,7 @@ void MainWindow::clearAll()
     ui->CodeDisplay->clear();
     ui->ResultDisplay->clear();
     ui->treeDisplay->clear();
+    ui->errorDisplay->clear();
 }
 
 void MainWindow::loadCodeFromFile()
@@ -106,6 +112,7 @@ void MainWindow::runCodes()
         return ;
     }
     ui->ResultDisplay->clear();
+    ui->errorDisplay->clear();
     isRunning = true;
     proc->write("run\n");
     ui->treeDisplay->clear();
