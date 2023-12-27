@@ -151,8 +151,25 @@ void MainWindow::readStdOut()
                ui->treeDisplay->clear();
                proc->write("analyze\n");
            }
+           else if(ch == '['){
+               //格式开始符
+               isPlainText = false;
+           }
+           else if(ch == ']'){
+               //格式结束符
+               QString html = "<b style=\"color:red\">" + htmlContent + "</b> ";
+               htmlContent.clear();
+               isPlainText = true;
+               terminalReflect->insertHtml(html);
+           }
            else{
-               terminalReflect->insertPlainText(QString(ch));
+               if(isPlainText){
+                   terminalReflect->insertPlainText(QString(ch));
+               }
+               else{
+                   //缓存html内容
+                    htmlContent.append(ch);
+               }
            }
        }
 }
