@@ -4,6 +4,7 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
+    , isRunning(false)
 {
     ui->setupUi(this);
     ui->inputLineEdit->hide();
@@ -28,7 +29,13 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-    proc->write("exit\n");
+    qDebug() <<  "isRunning: " << this->isRunning;
+    if(isRunning){
+        proc->kill();
+    }
+    else{
+        proc->write("exit\n");
+    }
     proc->waitForFinished(-1);
     qDebug() << "finished.";
     delete ui;
@@ -93,12 +100,13 @@ void MainWindow::loadCodeFromFile()
 
 void MainWindow::runCodes()
 {
-    if(ui->inputLineEdit->isVisible()){
+    if(isRunning){
         //上一次运行未停止
         QMessageBox::warning(this,"警告","程序正在运行。");
         return ;
     }
     ui->ResultDisplay->clear();
+    isRunning = true;
     proc->write("run\n");
     ui->treeDisplay->clear();
 }
@@ -107,7 +115,10 @@ void MainWindow::showHelp()
 {
     QDialog helpDialog(this);
     helpDialog.setWindowTitle("帮助");
+    helpDialog.resize(340,150);
+    QVBoxLayout layout(&helpDialog);
     QLabel label("MiniBasic Interpreter Developed By Creeper" ,&helpDialog);
+    layout.addWidget(&label);
     helpDialog.exec();
 }
 
@@ -136,6 +147,7 @@ void MainWindow::readStdOut()
            }
            else if(ch == '$'){
                //mark run finished
+               isRunning = false;
                ui->treeDisplay->clear();
                proc->write("analyze\n");
            }

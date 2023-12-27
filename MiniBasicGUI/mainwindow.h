@@ -57,6 +57,7 @@ private:
     QVector<Code> codes;
     //用于显示终端输入的文本框
     QTextBrowser* terminalReflect = nullptr;
+    bool isRunning;
 
 private:
     Ui::MainWindow *ui;
