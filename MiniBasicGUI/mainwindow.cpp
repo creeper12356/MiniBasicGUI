@@ -18,8 +18,15 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->inputLineEdit,&QLineEdit::editingFinished,this,&MainWindow::inputFinished);
 
     proc = new QProcess(this);
-    if(!QFile::exists("./MiniBasicCore")){
-        QString errorInfo = "找不到文件" + QDir::current().absolutePath() + "/MiniBasicCore";
+    QString exeName;
+#ifdef Q_OS_WIN32
+    exeName = "MiniBasicCore.exe";
+#endif
+#ifndef Q_OS_WIN32
+    exeName = "MiniBasicCore";
+#endif
+    if(!QFile::exists(exeName)){
+        QString errorInfo = "找不到文件" + QDir::current().absolutePath() + "/" + exeName;
         QMessageBox::critical(this,"错误",errorInfo);
         exit(-1);
     }
